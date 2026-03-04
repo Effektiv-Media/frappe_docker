@@ -5,6 +5,7 @@ on:
     branches: [main]
   repository_dispatch:
     types: [app-updated]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,7 +13,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-
     steps:
       - uses: actions/checkout@v4
 
@@ -25,7 +25,8 @@ jobs:
 
       - name: Build and Push
         run: |
-          export APPS_JSON_BASE64=$(base64 -w 0 apps.json)
+          APPS_JSON='[{"url":"https://github.com/frappe/erpnext","branch":"version-15"},{"url":"https://x-access-token:${{ secrets.APP_REPO_TOKEN }}@github.com/Effektiv-Media/signello-v2","branch":"main"}]'
+          export APPS_JSON_BASE64=$(echo $APPS_JSON | base64 -w 0)
           docker build \
             --build-arg APPS_JSON_BASE64=$APPS_JSON_BASE64 \
             --build-arg FRAPPE_PATH=https://github.com/frappe/frappe \
