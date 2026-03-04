@@ -1,0 +1,36 @@
+name: Build & Push Image
+
+on:
+  push:
+    branches: [main]
+  repository_dispatch:
+    types: [app-updated]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push
+        run: |
+          export APPS_JSON_BASE64=$(base64 -w 0 apps.json)
+          docker build \
+            --build-arg APPS_JSON_BASE64=$APPS_JSON_BASE64 \
+            --build-arg FRAPPE_PATH=https://github.com/frappe/frappe \
+            --build-arg FRAPPE_BRANCH=version-15 \
+            --build-arg PYTHON_VERSION=3.12 \
+            --tag ghcr.io/effektiv-media/signello:latest \
+            --file images/custom/Containerfile .
+          docker push ghcr.io/effektiv-media/signello:latest
