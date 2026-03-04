@@ -1,0 +1,10 @@
+[
+  {
+    "url": "https://github.com/frappe/erpnext",
+    "branch": "version-15"
+  },
+  {
+    "url": "https://x-access-token:${{ secrets.APP_REPO_TOKEN }}@github.com/Effektiv-Media/signello-v2",
+    "branch": "main"
+  }
+]
