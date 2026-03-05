@@ -9,7 +9,7 @@ if [ ! -d "sites/signello" ]; then
     --mariadb-root-password "$MYSQL_ROOT_PASSWORD" \
     --admin-password "$MYSQL_ROOT_PASSWORD" \
     --db-host "$MYSQLHOST" \
-    --db-port "$MYSQLPORT" \
+    --db-port 3306 \
     --no-mariadb-socket
 
   bench --site signello install-app erpnext
