@@ -149,19 +149,21 @@ VOLUME [ \
   "/home/frappe/frappe-bench/logs" \
 ]
 
-CMD [ \
-  "/home/frappe/frappe-bench/env/bin/gunicorn", \
-  "--chdir=/home/frappe/frappe-bench/sites", \
-  "--bind=0.0.0.0:8000", \
-  "--threads=4", \
-  "--workers=2", \
-  "--worker-class=gthread", \
-  "--worker-tmp-dir=/dev/shm", \
-  "--timeout=120", \
-  "--preload", \
-  "frappe.app:application" \
-]
+#CMD [ \
+#"/home/frappe/frappe-bench/env/bin/gunicorn", \
+#"--chdir=/home/frappe/frappe-bench/sites", \
+#  "--bind=0.0.0.0:8000", \
+#  "--threads=4", \
+#  "--workers=2", \
+#  "--worker-class=gthread", \
+#  "--worker-tmp-dir=/dev/shm", \
+#  "--timeout=120", \
+#  "--preload", \
+#  "frappe.app:application" \
+#]
 
-COPY startup.sh /usr/local/bin/startup.sh
-RUN chmod +x /usr/local/bin/startup.sh
-CMD ["/usr/local/bin/startup.sh"]
+USER root
+COPY startup.sh /home/frappe/startup.sh
+RUN chmod +x /home/frappe/startup.sh
+USER frappe
+CMD ["/home/frappe/startup.sh"]
