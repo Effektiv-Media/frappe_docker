@@ -2,7 +2,7 @@
 
 cd /home/frappe/frappe-bench
 
-# Always create the site folder (--force reuses existing DB)
+# Always recreate site folder (--force reuses existing DB without wiping data)
 bench new-site signello \
   --mariadb-root-password "$MYSQL_ROOT_PASSWORD" \
   --admin-password "$MYSQL_ROOT_PASSWORD" \
@@ -11,7 +11,7 @@ bench new-site signello \
   --mariadb-user-host-login-scope='%' \
   --force
 
-# Only install apps if this is first boot
+# Only install apps if not already installed
 ERPNEXT_INSTALLED=$(mysql -h "$MYSQLHOST" -u root -p"$MYSQL_ROOT_PASSWORD" \
   -D "_78cfa5efeb514aa4" \
   -e "SELECT name FROM tabModule WHERE name='ERPNext';" 2>/dev/null | grep -c "ERPNext")
@@ -24,7 +24,17 @@ fi
 
 bench use signello
 echo "signello" > sites/currentsite.txt
-echo '{"serve_default_site": true, "default_site": "signello"}' > sites/common_site_config.json
+
+cat > sites/common_site_config.json << EOF
+{
+  "serve_default_site": true,
+  "default_site": "signello",
+  "redis_cache": "$REDIS_CACHE",
+  "redis_queue": "$REDIS_QUEUE",
+  "redis_socketio": "$REDIS_CACHE"
+}
+EOF
+
 bench --site signello set-config host_name "https://$HOST_NAME"
 ln -sf /home/frappe/frappe-bench/sites/signello /home/frappe/frappe-bench/sites/$HOST_NAME
 
