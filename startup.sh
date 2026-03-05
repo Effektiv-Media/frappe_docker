@@ -13,8 +13,11 @@ bench new-site signello \
 bench --site signello install-app erpnext
 bench --site signello install-app signello_2
 bench use signello
-bench --site signello set-config host_name "$HOST_NAME"
-echo '{"serve_default_site": true}' > sites/common_site_config.json
+
+echo "signello" > sites/currentsite.txt
+echo '{"serve_default_site": true, "default_site": "signello"}' > sites/common_site_config.json
+
+bench --site signello set-config host_name "https://$HOST_NAME"
 
 exec /home/frappe/frappe-bench/env/bin/gunicorn \
   --chdir=/home/frappe/frappe-bench/sites \
