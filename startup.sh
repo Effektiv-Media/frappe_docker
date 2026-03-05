@@ -2,25 +2,26 @@
 
 cd /home/frappe/frappe-bench
 
-# Check if site already exists in the database
-SITE_EXISTS=$(mysql -h "$MYSQLHOST" -u root -p"$MYSQL_ROOT_PASSWORD" \
-  -e "SHOW DATABASES LIKE '_78cfa5efeb514aa4';" 2>/dev/null | grep -c "_78cfa5efeb514aa4")
+# Always create the site folder (--force reuses existing DB)
+bench new-site signello \
+  --mariadb-root-password "$MYSQL_ROOT_PASSWORD" \
+  --admin-password "$MYSQL_ROOT_PASSWORD" \
+  --db-host "$MYSQLHOST" \
+  --db-port 3306 \
+  --mariadb-user-host-login-scope='%' \
+  --force
 
-if [ "$SITE_EXISTS" -eq 0 ]; then
-  echo "First boot - creating site..."
-  bench new-site signello \
-    --mariadb-root-password "$MYSQL_ROOT_PASSWORD" \
-    --admin-password "$MYSQL_ROOT_PASSWORD" \
-    --db-host "$MYSQLHOST" \
-    --db-port 3306 \
-    --mariadb-user-host-login-scope='%' \
-    --force
+# Only install apps if this is first boot
+ERPNEXT_INSTALLED=$(mysql -h "$MYSQLHOST" -u root -p"$MYSQL_ROOT_PASSWORD" \
+  -D "_78cfa5efeb514aa4" \
+  -e "SELECT name FROM tabModule WHERE name='ERPNext';" 2>/dev/null | grep -c "ERPNext")
 
+if [ "$ERPNEXT_INSTALLED" -eq 0 ]; then
+  echo "Installing apps..."
   bench --site signello install-app erpnext
   bench --site signello install-app signello_2
 fi
 
-# Always run on every boot
 bench use signello
 echo "signello" > sites/currentsite.txt
 echo '{"serve_default_site": true, "default_site": "signello"}' > sites/common_site_config.json
@@ -30,7 +31,6 @@ ln -sf /home/frappe/frappe-bench/sites/signello /home/frappe/frappe-bench/sites/
 bench --site signello migrate
 bench --site signello build --force
 
-# Write nginx config
 cat > /etc/nginx/conf.d/frappe.conf << 'EOF'
 upstream frappe {
     server 127.0.0.1:8000;
@@ -66,10 +66,8 @@ server {
 }
 EOF
 
-# Start nginx in background
 nginx -g 'daemon off;' &
 
-# Start gunicorn in foreground
 exec /home/frappe/frappe-bench/env/bin/gunicorn \
   --chdir=/home/frappe/frappe-bench/sites \
   --bind=127.0.0.1:8000 \
