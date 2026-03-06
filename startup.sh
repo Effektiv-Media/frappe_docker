@@ -2,7 +2,6 @@
 
 cd /home/frappe/frappe-bench
 
-# Only create site on very first boot when volume is empty
 if [ ! -f "sites/signello/site_config.json" ]; then
   echo "First boot - creating site..."
   bench new-site signello \
@@ -20,7 +19,6 @@ if [ ! -f "sites/signello/site_config.json" ]; then
   bench --site signello set-config host_name "https://$HOST_NAME"
 fi
 
-# Always run on every boot
 cat > sites/common_site_config.json << EOF
 {
   "serve_default_site": true,
