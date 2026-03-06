@@ -19,6 +19,13 @@ if [ ! -f "sites/signello/site_config.json" ]; then
   bench --site signello set-config host_name "https://$HOST_NAME"
 fi
 
+# Always re-grant permissions on every boot using current password
+DB_NAME=$(cat sites/signello/site_config.json | python3 -c "import sys,json; print(json.load(sys.stdin)['db_name'])")
+DB_PASS=$(cat sites/signello/site_config.json | python3 -c "import sys,json; print(json.load(sys.stdin)['db_password'])")
+
+mariadb -h "$MYSQLHOST" -u root -p"$MYSQL_ROOT_PASSWORD" \
+  -e "GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_NAME'@'%' IDENTIFIED BY '$DB_PASS'; FLUSH PRIVILEGES;"
+
 cat > sites/common_site_config.json << EOF
 {
   "serve_default_site": true,
