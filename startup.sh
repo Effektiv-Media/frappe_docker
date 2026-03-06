@@ -2,12 +2,9 @@
 
 cd /home/frappe/frappe-bench
 
-# Check if the database has been set up before by looking for the Company table
-DB_SETUP=$(mariadb -h "$MYSQLHOST" -u root -p"$MYSQL_ROOT_PASSWORD" \
-  -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='_78cfa5efeb514aa4';" 2>/dev/null | grep -c "_78cfa5efeb514aa4")
-
-if [ "$DB_SETUP" -eq 0 ]; then
-  echo "First boot - creating site and database..."
+# Only create site on very first boot when volume is empty
+if [ ! -f "sites/signello/site_config.json" ]; then
+  echo "First boot - creating site..."
   bench new-site signello \
     --mariadb-root-password "$MYSQL_ROOT_PASSWORD" \
     --admin-password "$MYSQL_ROOT_PASSWORD" \
@@ -17,21 +14,13 @@ if [ "$DB_SETUP" -eq 0 ]; then
 
   bench --site signello install-app erpnext
   bench --site signello install-app signello_2
-else
-  echo "Database exists - skipping site creation..."
-  # Recreate the site folder without touching the database
-  bench new-site signello \
-    --mariadb-root-password "$MYSQL_ROOT_PASSWORD" \
-    --admin-password "$MYSQL_ROOT_PASSWORD" \
-    --db-host "$MYSQLHOST" \
-    --db-port 3306 \
-    --mariadb-user-host-login-scope='%' \
-    --no-setup-db
+  bench use signello
+  echo "signello" > sites/currentsite.txt
+  ln -sf /home/frappe/frappe-bench/sites/signello /home/frappe/frappe-bench/sites/$HOST_NAME
+  bench --site signello set-config host_name "https://$HOST_NAME"
 fi
 
-bench use signello
-echo "signello" > sites/currentsite.txt
-
+# Always run on every boot
 cat > sites/common_site_config.json << EOF
 {
   "serve_default_site": true,
@@ -41,9 +30,6 @@ cat > sites/common_site_config.json << EOF
   "redis_socketio": "$REDIS_CACHE"
 }
 EOF
-
-bench --site signello set-config host_name "https://$HOST_NAME"
-ln -sf /home/frappe/frappe-bench/sites/signello /home/frappe/frappe-bench/sites/$HOST_NAME
 
 bench --site signello migrate
 bench --site signello build --force
