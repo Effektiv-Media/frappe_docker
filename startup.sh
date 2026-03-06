@@ -2,24 +2,31 @@
 
 cd /home/frappe/frappe-bench
 
-# Always recreate site folder (--force reuses existing DB without wiping data)
-bench new-site signello \
-  --mariadb-root-password "$MYSQL_ROOT_PASSWORD" \
-  --admin-password "$MYSQL_ROOT_PASSWORD" \
-  --db-host "$MYSQLHOST" \
-  --db-port 3306 \
-  --mariadb-user-host-login-scope='%' \
-  --force
+# Check if the database has been set up before by looking for the Company table
+DB_SETUP=$(mariadb -h "$MYSQLHOST" -u root -p"$MYSQL_ROOT_PASSWORD" \
+  -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='_78cfa5efeb514aa4';" 2>/dev/null | grep -c "_78cfa5efeb514aa4")
 
-# Only install apps if not already installed
-ERPNEXT_INSTALLED=$(mysql -h "$MYSQLHOST" -u root -p"$MYSQL_ROOT_PASSWORD" \
-  -D "_78cfa5efeb514aa4" \
-  -e "SELECT name FROM tabModule WHERE name='ERPNext';" 2>/dev/null | grep -c "ERPNext")
+if [ "$DB_SETUP" -eq 0 ]; then
+  echo "First boot - creating site and database..."
+  bench new-site signello \
+    --mariadb-root-password "$MYSQL_ROOT_PASSWORD" \
+    --admin-password "$MYSQL_ROOT_PASSWORD" \
+    --db-host "$MYSQLHOST" \
+    --db-port 3306 \
+    --mariadb-user-host-login-scope='%'
 
-if [ "$ERPNEXT_INSTALLED" -eq 0 ]; then
-  echo "Installing apps..."
   bench --site signello install-app erpnext
   bench --site signello install-app signello_2
+else
+  echo "Database exists - skipping site creation..."
+  # Recreate the site folder without touching the database
+  bench new-site signello \
+    --mariadb-root-password "$MYSQL_ROOT_PASSWORD" \
+    --admin-password "$MYSQL_ROOT_PASSWORD" \
+    --db-host "$MYSQLHOST" \
+    --db-port 3306 \
+    --mariadb-user-host-login-scope='%' \
+    --no-setup-db
 fi
 
 bench use signello
